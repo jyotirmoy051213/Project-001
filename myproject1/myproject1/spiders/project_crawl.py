@@ -6,6 +6,6 @@ class ProductCrawler(scrapy.Spider):
     
     def parse(self, response):
         product_links = response.xpath('//a[@class="product-image-link"]/@href').getall()
-        print('found', product_links)
+        
         for link in product_links:
             yield {'product_link': link}
