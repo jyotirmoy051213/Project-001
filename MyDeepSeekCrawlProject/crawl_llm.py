@@ -1,5 +1,9 @@
+"""Crawling project using Crawl4AI with LLM based extraction strategy
+from ryanscomputerbd
+"""
+
 import asyncio, os
-from crawl4ai import AsyncWebCrawler, CrawlerRunConfig, BrowserConfig, LLMExtractionStrategy, LLMConfig
+from crawl4ai import AsyncWebCrawler, CrawlerRunConfig, BrowserConfig, LLMExtractionStrategy, LLMConfig,  CacheMode
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 import json
@@ -23,7 +27,7 @@ async def crawl_products():
     browser_config = BrowserConfig(
         browser_type='chromium', # Chrome Browser
         headless=False, # Headless == No GUI
-        verbose=True # Verbose logging ???
+        verbose=True # Verbose logging
     )
     
     llm_extraction_strategy = LLMExtractionStrategy(
@@ -38,38 +42,37 @@ async def crawl_products():
     session_id = 'product_crawl_session'
 
     # initialize state variables
-    page_number = 1
-    all_products = []
-    seen_names = set()
+    page_number = 1 # Start from page 1
+    all_products = [] # List to hold all scraped products
+    seen_names = set() # Set to track unique products
+    delay_time = 60 # Delay between requests to avoid overwhelming the server + Rate limiting
 
     # Start the crawler, TRY to ensure proper cleanup if crawler fails
     try:
         async with AsyncWebCrawler(config=browser_config) as crawler:
-            """"
-            Early return if no products found
-            """
             while True:
                 url = f"https://www.ryans.com/category/laptop?page={page_number}" # URL with pagination
                 css_selector= "[class*='cus-col-2 cus-col-3 cus-col-4 cus-col-5 category-single-product mb-2 context1']" # Only select where class contains this string
 
-                    
+                # Crawl the page    
                 result = await crawler.arun(
                     url=url,
                     config=CrawlerRunConfig(
                     session_id=session_id, # Unique session ID for the crawl
                     extraction_strategy=llm_extraction_strategy,
-                    css_selector=css_selector
+                    css_selector=css_selector,
+                    cache_mode=CacheMode.BYPASS
                     )
                 )
                     
 
-
-                # Parse results safely
+                # Parse results safely, skip if JSON is invalid
                 try:
                     extracted_data = json.loads(result.extracted_content)
                 except json.JSONDecodeError:
                     print(f"Error decoding JSON in Page {page_number}, skipping.")
-                    extracted_data = []
+                    page_number += 1
+                    continue 
 
                 # Stop if no products found
                 if not extracted_data:
@@ -92,7 +95,9 @@ async def crawl_products():
                 print(f"Page {page_number}: Found {len(new_products)} new products.")"""
 
                 page_number +=1
-                await asyncio.sleep(55) # Be polite and avoid overwhelming the server
+                
+                print(f"Proceeding to Page after {delay_time} seconds...")
+                await asyncio.sleep(delay_time) # Be polite and avoid overwhelming the server
 
 
     finally: # CSV will be saved even if error occurs
@@ -108,6 +113,7 @@ async def crawl_products():
 
         
         print(f"Saved {len(all_products)} unique products to {csv_file}.")
+        print(f"Tokens used: {llm_extraction_strategy.show_usage()}")
 
 
         
