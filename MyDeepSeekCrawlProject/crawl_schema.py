@@ -22,6 +22,7 @@ SCOPE FOR IMPROVEMENTS:
 11. Explore SQL DB instead of CSV.
 12. Need to explore LLM based schema generation.
 13. Need to explore LLM-free extraction + LLM-based data cleaning and structuring.
+14. Need to setup a requirements.txt file.
 """
 
 
