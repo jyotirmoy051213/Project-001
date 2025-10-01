@@ -19,6 +19,7 @@ SCOPE FOR IMPROVEMENTS:
 8. Memory management for large crawls need to be checked.
 9. Later maybe build a UI to select website, generate schema using LLM, upload schema, Select crawl number/category/page number, view logs
 10. Build in Docker.
+11. Explore SQL DB instead of CSV.
 """
 
 
