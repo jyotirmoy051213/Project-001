@@ -1,6 +1,25 @@
-"""Crawling project using Crawl4AI with LLM Free Schema based extraction strategy
-from ryanscomputerbd
 """
+Crawling project using Crawl4AI with LLM Free Schema-based extraction strategy from ryanscomputerbd
+This script crawls product data from multiple categories on ryanscomputerbd, handling pagination and saving results to a CSV file.
+Right now it is set to use one category at a time. 
+Category and the url need to be changed manually in the code.
+Schema is handcrafted after inspecting the webpage structure for this specific site.
+Code need to be modularized.
+"""
+
+"""
+SCOPE FOR IMPROVEMENTS:
+1. Could be automated to loop through all categories in base_urls list.
+2. CSV is written once after all, could be optimized to write in each page.
+3. Some functions can be made to shorten the code.
+4. Separate scripts can be made for the code, especially Schema (as it is website-specific) & Configs.
+5. Error handling might need improvements.
+6. Duplicates are not handled.
+7. Logging needs to be improved.
+8. Memory management for large crawls need to be checked.
+"""
+
+
 
 import asyncio, os
 from crawl4ai import AsyncWebCrawler, CrawlerRunConfig, BrowserConfig, JsonCssExtractionStrategy,  CacheMode
@@ -26,12 +45,33 @@ async def crawl_products():
     seen_names = set() # Set to track unique products
     delay_time = 5 # Delay between requests to avoid overwhelming the server + Rate limiting
 
+    # URLS of ryanscomputerbd
+    base_urls = [
+        {"category": "laptop", "base_url": "https://www.ryans.com/category/laptop"},
+        {"category": "desktop_and_server", "base_url": "https://www.ryans.com/category/desktop-and-server"},
+        {"category": "gaming", "base_url": "https://www.ryans.com/category/gaming"},
+        {"category": "monitor", "base_url": "https://www.ryans.com/category/monitor"},
+        {"category": "tablet_pc", "base_url": "https://www.ryans.com/category/tablet"},
+        {"category": "printer", "base_url": "https://www.ryans.com/category/printer"},
+        {"category": "camera", "base_url": "https://www.ryans.com/category/camera"},
+        {"category": "security", "base_url": "https://www.ryans.com/category/security-system"},
+        {"category": "network", "base_url": "https://www.ryans.com/category/network"},
+        {"category": "sound", "base_url": "https://www.ryans.com/category/sound-system"},
+        {"category": "office_items", "base_url": "https://www.ryans.com/category/office-items"},
+        {"category": "accessories", "base_url": "https://www.ryans.com/category/accessories"},
+        {"category": "software", "base_url": "https://www.ryans.com/category/software"},
+        {"category": "gadget", "base_url": "https://www.ryans.com/category/gadget"},
+        {"category": "store", "base_url": "https://www.ryans.com/category/store"}
+    ]
+
     # Start the crawler, TRY to ensure proper cleanup if crawler fails
     try:
         async with AsyncWebCrawler(config=browser_config) as crawler:
             while True:
-                url = f"https://www.ryans.com/category/desktop-and-server?page={page_number}" # URL with pagination
+                url = f"https://www.ryans.com/category/laptop?page={page_number}" # URL with pagination
                 css_selector= ".card.h-100" # Only select where class contains this string
+
+                category = "laptop" # Change category as needed
 
                 # Build schema for JsonCssExtractionStrategy by inspecting the webpage
                 schema = {
@@ -64,6 +104,8 @@ async def crawl_products():
                 # Parse results safely, skip if JSON is invalid
                 try:
                     extracted_data = json.loads(result.extracted_content)
+
+                # If encountered json decode error, skip this page
                 except json.JSONDecodeError:
                     print(f"Error decoding JSON in Page {page_number}, skipping.")
                     page_number += 1
@@ -76,36 +118,27 @@ async def crawl_products():
                 
                 # Append new unique products
                 for item in extracted_data:
+                    item['category'] = category # Add category field
                     all_products.append(item)
                 print(f"Page {page_number}: added {len(extracted_data)} products, Total so far: {len(all_products)}.")
 
-                """# Filter for duplicates
-                new_products = []
-                for item in extracted_data:
-                    if item['name'] not in seen_names:
-                        seen_names.add(item['name'])
-                        all_products.append(item)
-                        new_products.append(item)
-
-                print(f"Page {page_number}: Found {len(new_products)} new products.")"""
-
                 page_number +=1
-                
+            
+                # Delay Log
                 print(f"Proceeding to Page after {delay_time} seconds...")
                 await asyncio.sleep(delay_time) # Be polite and avoid overwhelming the server
-                break
 
-
-    finally: # CSV will be saved even if error occurs
+    # CSV will be saved even if error occurs
+    finally: 
         await crawler.close()    
-        # Save to CSV once after all pages are crawled
         
-
+        # Save to CSV once after all pages are crawled
         csv_file = "D:/My Codes/Projects/scraping/MyDeepSeekCrawlProject/Ryans_products.csv"
-        headers = [field['name'] for field in schema['fields']]
+        headers = ['category'] + [field['name'] for field in schema['fields']]
         # Check if file already exists to write header only once
         file_exists = os.path.isfile(csv_file)
 
+        # Write to CSV
         with open(csv_file, mode='a', newline='', encoding='utf-8') as file:
             writer = csv.writer(file)
             
@@ -113,11 +146,13 @@ async def crawl_products():
             if not file_exists:
                 writer.writerow(headers)
             
+            # Write product rows with category as the first column
             for product in all_products:
-                writer.writerow([product.get(field, "") for field in headers])
-
+                row = [product.get('category', '')] + [product.get(field, '') for field in headers[1:]]
+                writer.writerow(row)
 
         
+        # Final Log
         print(f"Saved {len(all_products)} unique products to {csv_file}.")
 
 
