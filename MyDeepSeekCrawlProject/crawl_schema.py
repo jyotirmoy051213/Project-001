@@ -12,7 +12,7 @@ SCOPE FOR IMPROVEMENTS:
 1. Could be automated to loop through all categories in base_urls list.
 2. CSV is written once after all, could be optimized to write in each page.
 3. Some functions can be made to shorten the code.
-4. Separate scripts can be made for the code, especially Schema (as it is website-specific) & Configs.
+4. Separate scripts can be made for the code, especially Schema (as it is website-specific), Configs (Extraction Strategy), base_urls, logging, writing files and main logic.
 5. Error handling might need improvements.
 6. Duplicates are not handled.
 7. Logging needs to be improved. Logs needs to be written to a file. Explore logging module.
@@ -20,6 +20,8 @@ SCOPE FOR IMPROVEMENTS:
 9. Later maybe build a UI to select website, generate schema using LLM, upload schema, Select crawl number/category/page number, view logs
 10. Build in Docker.
 11. Explore SQL DB instead of CSV.
+12. Need to explore LLM based schema generation.
+13. Need to explore LLM-free extraction + LLM-based data cleaning and structuring.
 """
 
 
