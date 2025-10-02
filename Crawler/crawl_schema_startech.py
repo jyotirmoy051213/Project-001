@@ -1,6 +1,6 @@
 """
-Crawling project using Crawl4AI with LLM Free Schema-based extraction strategy from ryanscomputerbd
-This script crawls product data from multiple categories on ryanscomputerbd, handling pagination and saving results to a CSV file.
+Crawling project using Crawl4AI with LLM Free Schema-based extraction strategy from Startech.com
+This script crawls product data from multiple categories of startech website, handling pagination and saving results to a CSV file.
 Right now it is set to use one category at a time. 
 Schema is handcrafted after inspecting the webpage structure for this specific site.
 """
@@ -10,7 +10,7 @@ SCOPE FOR IMPROVEMENTS:
 1. Could be automated to loop through all categories in urls_to_crawl list.
 2. CSV is written once after all, could be optimized to write in each page.
 3. Some functions can be made to shorten the code.
-4. Separate scripts can be made for the code, especially Schema (as it is website-specific), Configs (Extraction Strategy), urls_to_crawl, logging, writing files and main logic.
+4. Separate scripts can be made for the code, especially logging, writing files and main logic.
 5. Error handling might need improvements.
 6. Duplicates are not handled.
 7. Logging needs to be improved. Logs needs to be written to a file. Explore logging module.
@@ -28,14 +28,13 @@ from crawl4ai import AsyncWebCrawler, CrawlerRunConfig, BrowserConfig, JsonCssEx
 from dotenv import load_dotenv
 import json
 import csv
-import site_config_ryans
-import configs_ryans
+import site_config_startech, configs_startech
 
 load_dotenv()
 
 async def crawl_products():
     # initialize config
-    browser_config = configs_ryans.BrowserConfig()    
+    browser_config = configs_startech.BrowserConfig()    
     
     session_id = 'product_crawl_session'
 
@@ -47,9 +46,9 @@ async def crawl_products():
     delay_time = 2 # Delay between requests to avoid overwhelming the server + Rate limiting
 
     # Website variables from site_configuration: Category of products, URLs & Schema
-    urls_to_crawl = site_config_ryans.URLS_TO_CRAWL
-    schema = site_config_ryans.SCHEMA_FOR_EXTRACTION
-    css_selector = site_config_ryans.CSS_SELECTOR
+    urls_to_crawl = site_config_startech.URLS_TO_CRAWL
+    schema = site_config_startech.SCHEMA_FOR_EXTRACTION
+    css_selector = site_config_startech.CSS_SELECTOR
 
     # Start the crawler, TRY to ensure proper cleanup if crawler fails
     try:
@@ -60,7 +59,7 @@ async def crawl_products():
                 base_url = f"{urls_to_crawl[crawl_number]['base_url']}?page={page_number}" # URL with pagination copied from site_config
 
                 # Configure Crawler
-                crawler_config = configs_ryans.get_crawler_config(
+                crawler_config = configs_startech.get_crawler_config(
                     session_id=session_id,
                     css_selector=css_selector,
                     schema=schema
@@ -91,6 +90,7 @@ async def crawl_products():
                     item['category'] = category # Add category field
                     all_products.append(item)
                 print(f"Page {page_number}: added {len(extracted_data)} products. \nTotal added in current crawl: {len(all_products)}.")
+                
                 #break # For testing, comment out to crawl all pages
                 page_number += 1
 
@@ -103,8 +103,8 @@ async def crawl_products():
         await crawler.close()    
 
         # Save to CSV once after all pages are crawled
-        csv_file = "D:/My Codes/Projects/Project-001/Crawler/Ryans_products.csv" # Main file
-        #csv_file = "D:/My Codes/Projects/Project-001/Crawler/trial_Ryans_products.csv" # Trial file for testing
+        csv_file = "D:/My Codes/Projects/Project-001/Crawler/Startech_products.csv" # Main file
+        #csv_file = "D:/My Codes/Projects/Project-001/Crawler/trial_csv.csv" # Trial file for testing
 
         headers = ['category'] + [field['name'] for field in schema['fields']]
         # Check if file already exists to write header only once
