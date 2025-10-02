@@ -34,7 +34,7 @@ load_dotenv()
 
 async def crawl_products():
     # initialize config
-    browser_config = configs_startech.BrowserConfig()    
+    browser_config = configs_startech.get_browser_config()   
     
     session_id = 'product_crawl_session'
 
