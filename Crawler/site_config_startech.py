@@ -36,7 +36,7 @@ SCHEMA_FOR_EXTRACTION = {
             {"name": "image_url", "selector": ".p-item-img img", "type": "attribute", "attribute": "src"},
             {"name": "description", "selector": ".short-description li", "type": "list", "fields": [{"name": "feature","type": "text"}]},
             {"name": "price", "selector": ".p-item-price span", "type": "text"},
-            {"name": "url", "selector": ".p-item-tag a", "type": "attribute", "attribute": "href"}
+            {"name": "url", "selector": ".p-item-img a", "type": "attribute", "attribute": "href"}
             ] 
         }
 

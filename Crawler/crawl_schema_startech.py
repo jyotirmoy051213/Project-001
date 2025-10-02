@@ -103,7 +103,7 @@ async def crawl_products():
         await crawler.close()    
 
         # Save to CSV once after all pages are crawled
-        csv_file = "D:/My Codes/Projects/Project-001/Crawler/Startech_products.csv" # Main file
+        csv_file = "D:/My Codes/Projects/Project-001/Crawler/Rerun_Startech_products.csv" # Main file
         #csv_file = "D:/My Codes/Projects/Project-001/Crawler/trial_csv.csv" # Trial file for testing
 
         headers = ['category'] + [field['name'] for field in schema['fields']]
