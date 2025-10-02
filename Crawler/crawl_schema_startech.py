@@ -39,7 +39,7 @@ async def crawl_products():
     session_id = 'product_crawl_session'
 
     # initialize state variables
-    crawl_number = 0 # Change this to crawl different categories from urls_to_crawl list
+    crawl_number = 0 # LENGTH OF urls_to_crawl :: Change this to crawl different categories from urls_to_crawl list
     page_number = 1 # Start from page 1
     all_products = [] # List to hold all scraped products
     seen_names = set() # Set to track unique products
@@ -55,7 +55,7 @@ async def crawl_products():
         async with AsyncWebCrawler(config=browser_config) as crawler:
             while True:
                 category = urls_to_crawl[crawl_number]["category"] # Change category as needed by crawl_number
-                print(f"\nStatus: Crawling. Crawl Number: {crawl_number}. Category: {category}. Page: {page_number}") # Log current status
+                print(f"\nStatus:Crawling, Crawl No:{crawl_number}/{len(urls_to_crawl)}, Category: {category}, Page: {page_number}") # Log current status
                 base_url = f"{urls_to_crawl[crawl_number]['base_url']}?page={page_number}" # URL with pagination copied from site_config
 
                 # Configure Crawler
@@ -89,7 +89,7 @@ async def crawl_products():
                 for item in extracted_data:
                     item['category'] = category # Add category field
                     all_products.append(item)
-                print(f"Page {page_number}: added {len(extracted_data)} products. \nTotal added in current crawl: {len(all_products)}.")
+                print(f"Page {page_number}: added {len(extracted_data)} products. \nTotal added including current crawl: {len(all_products)}.")
                 
                 #break # For testing, comment out to crawl all pages
                 page_number += 1
@@ -123,6 +123,7 @@ async def crawl_products():
 
         # Final Log
         print(f"Added {len(all_products)} new products to database.")
+        print(f"Crawling complete. Check log if less than {(page_number-2)*20}+ products added.")
 
 async def main():
     # Entry point
