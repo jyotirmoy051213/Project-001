@@ -40,7 +40,7 @@ async def crawl_products(test_mode=False):
     
 
     # VARIABLES TO DICTATE CRAWLING
-    crawl_number = 2 # Change this to crawl different categories from urls_to_crawl list
+    crawl_number = 0 # Change this to crawl different categories from urls_to_crawl list
     page_number = 1 # Start from page 1
     
     delay_time = 2 # Delay between requests to avoid overwhelming the server + Rate limiting

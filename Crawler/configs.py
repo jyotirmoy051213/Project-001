@@ -7,21 +7,33 @@ from pydantic import BaseModel
 from crawl4ai import BrowserConfig, CrawlerRunConfig, LLMConfig, LLMExtractionStrategy, JsonCssExtractionStrategy, CacheMode
 
 TEST_MODE = False
-MAIN_FILE= "D:/My Codes/Projects/Project-001/Crawler/Database/Vertech_products.csv"
+MAIN_FILE= "D:/My Codes/Projects/Project-001/Crawler/Database/Computer-village_products.csv"
 TEST_FILE= "D:/My Codes/Projects/Project-001/Crawler/test_csv.csv"
-CSS_SELECTOR = r".grid.grid-cols-2"
+CSS_SELECTOR = ".main-products.product-grid"
 URLS_TO_CRAWL = [
-    {"category": "Laptop", "base_url": "https://www.vertech.com.bd/category/laptop"},
-    {"category": "iMac & iMac Mini", "base_url": "https://www.vertech.com.bd/category/laptop/imac-and-mac-mini"},
-    {"category": "ipad", "base_url": "https://www.vertech.com.bd/category/ipad"},
+  { "category": "Laptop", "base_url": "https://www.computervillage.com.bd/laptop-notebook" },
+  { "category": "Tablet", "base_url": "https://www.computervillage.com.bd/tablet" },
+  { "category": "Desktop", "base_url": "https://www.computervillage.com.bd/desktop-pc" },
+  { "category": "Apple", "base_url": "https://www.computervillage.com.bd/laptop-apple" },
+  { "category": "Gaming", "base_url": "https://www.computervillage.com.bd/gaming-peripherals" },
+  { "category": "Component", "base_url": "https://www.computervillage.com.bd/component" },
+  { "category": "Monitor", "base_url": "https://www.computervillage.com.bd/monitor" },
+  { "category": "Accessories", "base_url": "https://www.computervillage.com.bd/accessories" },
+  { "category": "Gadget", "base_url": "https://www.computervillage.com.bd/gadget" },
+  { "category": "Photography", "base_url": "https://www.computervillage.com.bd/photography" },
+  { "category": "Office Equipment", "base_url": "https://www.computervillage.com.bd/office-equipments" },
+  { "category": "Security & Software", "base_url": "https://www.computervillage.com.bd/security-solution" },
+  { "category": "Networking", "base_url": "https://www.computervillage.com.bd/networking-product" },
+  { "category": "Enterprise Solution", "base_url": "https://www.computervillage.com.bd/enterprise-solution" },
+  { "category": "Server & Storage", "base_url": "https://www.computervillage.com.bd/server-and-storage" },
+  { "category": "Pre Owned", "base_url": "https://www.computervillage.com.bd/pre-owned" }
 ]
-
 
 ## CONFIGURATION SETTINGS
 def get_browser_config():
     return BrowserConfig(
         browser_type='chromium', # Chrome Browser
-        headless=True, # Headless == No GUI
+        headless=False, # Headless == No GUI
         verbose=True # Verbose logging
     ) 
 
@@ -37,13 +49,13 @@ def get_crawler_config(session_id, css_selector, schema): # ARGUMENTS THAT NEED 
 # Schema for JsonCssExtractionStrategy by inspecting the webpage
 SCHEMA_FOR_EXTRACTION = {
         "name": "Product",
-        "baseSelector": r".relative.group\/root",  # A Selector which is repeated, and contains information of a single product
+        "baseSelector": ".product-thumb",  # A Selector which is repeated, and contains information of a single product
         "fields": [
-            {"name": "name", "selector": r".p-md", "type": "text"},
-            {"name": "image_url", "selector": r".flex.justify-center.border-b.border-gray-100.w-full img", "type": "attribute", "attribute": "src"},
-            {"name": "description", "selector": r".short-description li", "type": "text"},
-            {"name": "price", "selector": r".text-primary.font-medium.text-title_3", "type": "text"},
-            {"name": "url", "selector": r".p-md a", "type": "attribute", "attribute": "href"}
+            {"name": "name", "selector": ".name", "type": "text"},
+            {"name": "image_url", "selector": ".img-responsive.img-first", "type": "attribute", "attribute": "src"},
+            {"name": "description", "selector": ".module-features-description li", "type": "list", "fields": [{"name": "feature", "type": "text"}]}, #???
+            {"name": "price", "selector": ".price-tax", "type": "text"}, #???
+            {"name": "url", "selector": ".name a", "type": "attribute", "attribute": "href"} #???
             ] 
         }
 
@@ -72,8 +84,9 @@ def custom_csv_writer(file_to_be_written, headers, products):
         
         # THIS SECTION IS EXTRACTION SPECIFIC::: Write as per extracted data
         for product in products:
-            if "url" in product and not product["url"].startswith("http"):
-                product["url"] = "https://www.vertech.com.bd/" + product["url"]
+            price = product.get("price", "")
+            if price and price.startswith("Ex Tax:"):
+                product["price"] = price.replace("Ex Tax:", "").strip()
 
             row = [product.get('category', '')] + [product.get(field, '') for field in headers[1:]]
             writer.writerow(row)
