@@ -40,8 +40,8 @@ async def crawl_products(test_mode=False):
     
 
     # VARIABLES TO DICTATE CRAWLING
-    crawl_number = 0 # Change this to crawl different categories from urls_to_crawl list
-    page_number = 6 # Start from page 1
+    crawl_number = 2 # Change this to crawl different categories from urls_to_crawl list
+    page_number = 1 # Start from page 1
     
     delay_time = 2 # Delay between requests to avoid overwhelming the server + Rate limiting
     session_id = "crawling_session"
@@ -104,7 +104,9 @@ async def crawl_products(test_mode=False):
                         headers=headers,
                         products=new_products
                         )
+                    print(type(result), type(result.extracted_content), type(extracted_data), type(new_products))
                     product_count = product_count + len(new_products)
+                    crawled_page_count += 1
                     print(f"Update: Page {page_number}: Written {len(new_products)} new products to database. Total written: {product_count}")
                     print(f"TEST MODE SUCCESSFUL. WAIT FOR FINAL LOG")
                     break
@@ -130,7 +132,8 @@ async def crawl_products(test_mode=False):
     finally: 
         # Estimated Product Count (CHECK LOG IN CASE OF DISCREPENCY)
         estimated_product_count = (
-            "<=20" if crawled_page_count == 1
+            "0" if crawled_page_count == 0
+            else "<=20" if crawled_page_count == 1
             else "20+" if crawled_page_count == 2
             else f"{(crawled_page_count - 1) * 20}+"
             )

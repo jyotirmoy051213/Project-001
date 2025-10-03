@@ -7,13 +7,28 @@ from pydantic import BaseModel
 from crawl4ai import BrowserConfig, CrawlerRunConfig, LLMConfig, LLMExtractionStrategy, JsonCssExtractionStrategy, CacheMode
 
 TEST_MODE = False
-MAIN_FILE= "D:/My Codes/Projects/Project-001/Crawler/Database/Vertech_products.csv"
+MAIN_FILE= "D:/My Codes/Projects/Project-001/Crawler/Database/products.csv"
 TEST_FILE= "D:/My Codes/Projects/Project-001/Crawler/test_csv.csv"
-CSS_SELECTOR = r".grid.grid-cols-2"
+CSS_SELECTOR = ".main-content.p-items-wrap"
 URLS_TO_CRAWL = [
-    {"category": "Laptop", "base_url": "https://www.vertech.com.bd/category/laptop"},
-    {"category": "iMac & iMac Mini", "base_url": "https://www.vertech.com.bd/category/laptop/imac-and-mac-mini"},
-    {"category": "ipad", "base_url": "https://www.vertech.com.bd/category/ipad"},
+    {"category": "Desktop", "base_url": "https://www.startech.com.bd/desktops"},
+    {"category": "Laptop", "base_url": "https://www.startech.com.bd/laptop-notebook"},
+    {"category": "Component", "base_url": "https://www.startech.com.bd/component"},
+    {"category": "Monitor", "base_url": "https://www.startech.com.bd/monitor"},
+    {"category": "Power", "base_url": "https://www.startech.com.bd/power"},
+    {"category": "Phone", "base_url": "https://www.startech.com.bd/mobile-phone"},
+    {"category": "Tablet", "base_url": "https://www.startech.com.bd/tablet-pc"},
+    {"category": "Office Equipment", "base_url": "https://www.startech.com.bd/office-equipment"},
+    {"category": "Camera", "base_url": "https://www.startech.com.bd/camera"},
+    {"category": "Security", "base_url": "https://www.startech.com.bd/Security-Camera"},
+    {"category": "Networking", "base_url": "https://www.startech.com.bd/networking"},
+    {"category": "Software", "base_url": "https://www.startech.com.bd/software"},
+    {"category": "Server & Storage", "base_url": "https://www.startech.com.bd/server-networking"},
+    {"category": "Accessories", "base_url": "https://www.startech.com.bd/accessories"},
+    {"category": "Gadget", "base_url": "https://www.startech.com.bd/gadget"},
+    {"category": "Gaming", "base_url": "https://www.startech.com.bd/gaming"},
+    {"category": "TV", "base_url": "https://www.startech.com.bd/television-shop"},
+    {"category": "Appliance", "base_url": "https://www.startech.com.bd/appliance"},
 ]
 
 
@@ -21,7 +36,7 @@ URLS_TO_CRAWL = [
 def get_browser_config():
     return BrowserConfig(
         browser_type='chromium', # Chrome Browser
-        headless=True, # Headless == No GUI
+        headless=False, # Headless == No GUI
         verbose=True # Verbose logging
     ) 
 
@@ -37,13 +52,13 @@ def get_crawler_config(session_id, css_selector, schema): # ARGUMENTS THAT NEED 
 # Schema for JsonCssExtractionStrategy by inspecting the webpage
 SCHEMA_FOR_EXTRACTION = {
         "name": "Product",
-        "baseSelector": r".relative.group\/root",  # A Selector which is repeated, and contains information of a single product
+        "baseSelector": ".p-item-inner",            
         "fields": [
-            {"name": "name", "selector": r".p-md", "type": "text"},
-            {"name": "image_url", "selector": r".flex.justify-center.border-b.border-gray-100.w-full img", "type": "attribute", "attribute": "src"},
-            {"name": "description", "selector": r".short-description li", "type": "text"},
-            {"name": "price", "selector": r".text-primary.font-medium.text-title_3", "type": "text"},
-            {"name": "url", "selector": r".p-md a", "type": "attribute", "attribute": "href"}
+            {"name": "name", "selector": ".p-item-name a", "type": "text"},
+            {"name": "image_url", "selector": ".p-item-img img", "type": "attribute", "attribute": "src"},
+            {"name": "description", "selector": ".short-description li", "type": "list", "fields": [{"name": "feature","type": "text"}]},
+            {"name": "price", "selector": ".p-item-price span", "type": "text"},
+            {"name": "url", "selector": ".p-item-img a", "type": "attribute", "attribute": "href"}
             ] 
         }
 
@@ -72,8 +87,5 @@ def custom_csv_writer(file_to_be_written, headers, products):
         
         # THIS SECTION IS EXTRACTION SPECIFIC::: Write as per extracted data
         for product in products:
-            if "url" in product and not product["url"].startswith("http"):
-                product["url"] = "https://www.vertech.com.bd/" + product["url"]
-
             row = [product.get('category', '')] + [product.get(field, '') for field in headers[1:]]
             writer.writerow(row)
