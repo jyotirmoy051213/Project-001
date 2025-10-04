@@ -6,7 +6,7 @@ import os, csv
 from pydantic import BaseModel
 from crawl4ai import BrowserConfig, CrawlerRunConfig, LLMConfig, LLMExtractionStrategy, JsonCssExtractionStrategy, CacheMode
 
-TEST_MODE = False
+TEST_MODE = True
 MAIN_FILE= "D:/My Codes/Projects/Project-001/Crawler/Database/Computer-village_products.csv"
 TEST_FILE= "D:/My Codes/Projects/Project-001/Crawler/test_csv.csv"
 CSS_SELECTOR = ".main-products.product-grid"
