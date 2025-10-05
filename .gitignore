@@ -4,6 +4,7 @@ __pycache__/
 
 # Ignore virtual environments
 web-project-venv/
+project-venv/
 *.venv/
 
 # Ignore environment files
