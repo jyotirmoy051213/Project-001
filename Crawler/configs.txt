@@ -90,6 +90,52 @@ async def crawl_and_extract_from_page(crawler):
     print(type(result.extracted_content))
     return result
 
+# OUTPUT
+product_count = 0
+crawled_page_count = 0
+seen_product = ()
+async def output_pipeline(result):
+    extracted_data = json.loads(result.extracted_content)
+    # Stop if no products found
+    if not extracted_data:
+        print(f"No products found in Page {PAGE_NUMBER}.")
+        return 
+                
+    # Append new unique products
+    new_products = [] 
+    for item in extracted_data:
+        new_products.append(item)
+        print(f"Update: Page {PAGE_NUMBER}: Extracted {len(extracted_data)} products.")
+                
+        # Add products in CSV file
+        if TEST_MODE:
+            custom_csv_writer(
+                file_to_be_written=TEST_FILE,
+                products=new_products
+                )
+            product_count = product_count + len(new_products)
+            crawled_page_count += 1
+            print(f"Update: Page {PAGE_NUMBER}: Written {len(new_products)} new products to database. Total written: {product_count}")
+            print(f"TEST MODE SUCCESSFUL. WAIT FOR FINAL LOG")
+            return
+                
+        else:
+            custom_csv_writer(
+                file_to_be_written=MAIN_FILE,
+                products=new_products
+                )
+            # Count of total products extracted & written
+            product_count = product_count + len(new_products)
+            print(f"Update: Page {PAGE_NUMBER}: Written {len(new_products)} new products to database. Total written: {product_count}")
+                
+            # Proceed to next page
+            PAGE_NUMBER += 1
+            crawled_page_count += 1
+            # Delay Log
+            print(f"Proceeding to next page after {DELAY_TIME} seconds...")
+            await asyncio.sleep(DELAY_TIME) # Be polite and avoid overwhelming the server
+
+
 ## WRITING
 HEADERS = ['category'] + [field['name'] for field in SCHEMA_FOR_EXTRACTION['fields']]
 
@@ -111,59 +157,3 @@ def custom_csv_writer(file_to_be_written, products):
 
             row = [product.get('category', '')] + [product.get(field, '') for field in HEADERS[1:]]
             writer.writerow(row)
-
-
-# OUTPUT
-class Output_Pipeline:
-    def __init__(self):
-        self.page_number = PAGE_NUMBER
-        self.product_count = 0
-        self.crawled_page_count = 0
-        self.seen_product = set()
-        self.delay_time = DELAY_TIME
-        self.test_mode = TEST_MODE
-        self.main_file = MAIN_FILE
-        self.test_file = TEST_FILE
-
-    async def __call__(self, result):
-        extracted_data = json.loads(result.extracted_content)
-        # Stop if no products found
-        if not extracted_data:
-            print(f"No products found in Page {self.page_number}.")
-            return False
-                
-        # Append new unique products
-        new_products = [] 
-        for item in extracted_data:
-            new_products.append(item)
-        print(f"Update: Page {self.page_number}: Extracted {len(extracted_data)} products.")
-                
-        # Add products in CSV file
-        if self.test_mode:
-            custom_csv_writer(
-                file_to_be_written=self.test_file,
-                products=new_products
-                )
-            self.product_count = self.product_count + len(new_products)
-            self.crawled_page_count += 1
-            print(f"Update: Page {self.page_number}: Written {len(new_products)} new products to database. Total written: {self.product_count}")
-            print(f"TEST MODE SUCCESSFUL. WAIT FOR FINAL LOG")
-            return False
-                
-        else:
-            custom_csv_writer(
-                file_to_be_written=self.main_file,
-                products=new_products
-                )
-            # Count of total products extracted & written
-            self.product_count = self.product_count + len(new_products)
-            print(f"Update: Page {self.page_number}: Written {len(new_products)} new products to database. Total written: {self.product_count}")
-                
-            # Proceed to next page
-            self.page_number += 1
-            self.crawled_page_count += 1
-            # Delay Log
-            print(f"Proceeding to next page after {self.delay_time} seconds...")
-            await asyncio.sleep(self.delay_time) # Be polite and avoid overwhelming the server
-
-            return True
