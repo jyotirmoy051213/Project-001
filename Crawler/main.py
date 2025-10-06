@@ -19,7 +19,7 @@ SCOPE FOR IMPROVEMENTS:
 12. Need to explore LLM based schema generation.
 """
 
-import asyncio, json
+import asyncio
 from crawl4ai import AsyncWebCrawler
 from dotenv import load_dotenv
 import configs
@@ -41,17 +41,12 @@ async def crawl_products(test_mode=False):
             output_pipeline = configs.Output_Pipeline()
             while True:
                 print("STATUS: INITIATING CRAWLING.")
-                result = await configs.crawl_and_extract_from_page(crawler=crawler)
-                if not result.success:
-                    print("STATUS: CRAWLING ERROR!!")
-                    break
-                print(type(result.extracted_content))
-                print("STATUS: CRAWLING SUCCESSFUL. PROCESSING OUTPUT.")
-                should_continue = await output_pipeline(result=result)
+                should_continue = await output_pipeline(crawler=crawler)
                 print(should_continue)
                 if not should_continue:
                     print("STOPPING OUTPUT PIPELINE.")
                     break
+                
     
     finally:
         print("CRAWLING COMPLETE.")
@@ -59,15 +54,15 @@ async def crawl_products(test_mode=False):
         # SHOULD BE TASK-AGNOSTIC ::: Estimated Product Count (CHECK LOG IN CASE OF DISCREPENCY)
         estimated_product_count = (
             "0" if output_pipeline.crawled_page_count == 0
-            else "<=20" if output_pipeline.crawled_page_count == 1
-            else "20+" if output_pipeline.crawled_page_count == 2
+            else "<=50" if output_pipeline.crawled_page_count == 1
+            else "50+" if output_pipeline.crawled_page_count == 2
             else f"{(output_pipeline.crawled_page_count - 1) * 20}+"
             )
         print(f"ESTIMATED PRODUCT COUNT: {estimated_product_count}.\nCHECK LOG IN CASE OF DISCREPENCY.")
         
         # FINAL LOG
-        print(f"Crawl no: {crawl_number}/{len(urls_to_crawl)-1}, Category: {configs.CATEGORY}. Crawled {output_pipeline.crawled_page_count} Pages.")
-        print(f"Total {output_pipeline.product_count} Products Added to Database.")
+        print(f"Crawl no: {crawl_number}/{len(urls_to_crawl)-1}, Crawled {output_pipeline.crawled_page_count} Pages.")
+        print(f"Total {output_pipeline.product_count} URLs Added to Database.")
         
 
 async def main():
