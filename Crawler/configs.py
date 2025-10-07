@@ -99,23 +99,6 @@ def get_crawler_config():
             cache_mode=CacheMode.BYPASS
         )
 
-## WRITING
-HEADERS = ["Brand", "Model", "URL"]
-
-def custom_csv_writer(file_to_be_written, products):    
-    file_exists = os.path.isfile(file_to_be_written)
-    with open(file_to_be_written, mode='a', newline='', encoding='utf-8') as file:
-        writer = csv.writer(file)
-
-        # Write header only if file is new, otherwise assume, there is already a header
-        if not file_exists:
-            writer.writerow(HEADERS)
-        
-        # THIS SECTION IS EXTRACTION SPECIFIC ::: Write as per extracted data
-        for product in products:
-            row = [product.get(field, '') for field in HEADERS]
-            writer.writerow(row)
-
 
 # OUTPUT
 class Output_Pipeline:
@@ -129,29 +112,49 @@ class Output_Pipeline:
         self.main_file = MAIN_FILE
         self.test_file = TEST_FILE
     
+    # DYNAMICALLY UPDATE URL
     @property
     def url(self):
         return BASE_URL + f"{self.page_number}.php"
     
+    # WRITER METHOD
+    def csv_writer(self, file_to_be_written, product_info):
+        headers = ["Brand", "Model", "URL"]
+        file_exists = os.path.isfile(file_to_be_written)
+        with open(file_to_be_written, mode='a', newline='', encoding='utf-8') as file:
+            writer = csv.writer(file)
+
+        # Write header only if file is new, otherwise assume, there is already a header
+        if not file_exists:
+            writer.writerow(headers)
+        
+        for product in product_info:
+            row = [product.get(field, '') for field in headers]
+            writer.writerow(row)
+
+
     async def __call__(self, crawler):
+        ## MODULE 1:: CRAWLING & EXTRACTION
+        # RUN THE CRAWLER
         result = await crawler.arun(
             url = self.url,
             config=get_crawler_config()
             )
-        
+        # SEE IF THE CRAWLING WAS SUCCESSFUL
         if not result.success:
             print("STATUS: CRAWLING ERROR!!")
             return False
-        
         print("STATUS: CRAWLING SUCCESSFUL. PROCESSING OUTPUT.")
+        # SEE IF EXTRACTION WAS SUCCESSFUL
         extracted_data = json.loads(result.extracted_content)
-        print(f"UPDATED PAGE NO: {self.page_number}")
-        # Stop if no products found
         if not extracted_data:
             print(f"No products found in Page {self.page_number}.")
             return False
-                
-        # Append new unique products
+        print(f"PAGE NO: {self.page_number}, DATA EXTRACTION COMPLETED.")        
+        
+        
+        
+        # MODULE 2 :: ORGANIZE EXTRACTED DATA FOR WRITING (APPEND NEW DATA, CHECK FOR DUPLICATES)
         new_products = []
         model_entries = extracted_data[0].get("model", [])
         for entry in model_entries:
@@ -160,40 +163,38 @@ class Output_Pipeline:
                     model_name = relative_url.split("-")[0].replace("_", " ").title()
                     full_url = f"https://www.gsmarena.com/{relative_url}"
                     new_products.append({"Brand": URLS_TO_CRAWL[CRAWL_NUMBER]['brand'], "Model": model_name, "URL": full_url})
-        
-        print(f"Update: Page {self.page_number}: Extracted {len(extracted_data[0])} URLs.")
-                
-        # Add products in CSV file
+        print(f"Update: Page {self.page_number}: Extracted {len(new_products)} URLs.")
+
+
+        ## MODULE 3 :: WRITING
         if self.test_mode:
             print("RUNNING ON TEST MODE")
-            custom_csv_writer(
+            self.csv_writer(
                 file_to_be_written=self.test_file,
                 products=new_products
                 )
-            self.product_count = self.product_count + len(new_products)
-            self.crawled_page_count += 1
-            print(f"Update: Page {self.page_number}: Written {len(new_products)} new URLs to database. Total written: {self.product_count}")
-            print(f"TEST MODE SUCCESSFUL. WAIT FOR FINAL LOG")
-            return False
-                
         else:
-            custom_csv_writer(
+            self.csv_writer(
                 file_to_be_written=self.main_file,
                 products=new_products
                 )
-            # Count of total products extracted & written
-            self.product_count = self.product_count + len(new_products)
-            print(f"Update: Page {self.page_number}: Written {len(new_products)} new URLs to database. Total written: {self.product_count}")
-                
-            # Proceed to next page
-            self.page_number += 1
-            self.crawled_page_count += 1
+        
+        
+        ## MODUEL 4 :: COUNTERS
+        self.product_count = self.product_count + len(new_products)
+        self.crawled_page_count += 1
+        print(f"Update: Page {self.page_number}: Written {len(new_products)} new URLs to database. Total written: {self.product_count}")
+        if self.test_mode:
+            print(f"TEST MODE SUCCESSFUL. WAIT FOR FINAL LOG")
+            return False
+        self.page_number += 1
+        self.crawled_page_count += 1
+        # STOP IF NOTHING FOUND
+        if len(new_products) == 0:
+            print(f"No Products found in Page{self.page_number}")
+            return False            
+        # DELAY LOG
+        print(f"Proceeding to next page after {self.delay_time} seconds...")
+        await asyncio.sleep(self.delay_time) # Be polite and avoid overwhelming the server
 
-            if len(new_products) == 0:
-                print(f"No Products found in Page{self.page_number}")
-                return False            
-            # Delay Log
-            print(f"Proceeding to next page after {self.delay_time} seconds...")
-            await asyncio.sleep(self.delay_time) # Be polite and avoid overwhelming the server
-
-            return True
+        return True
