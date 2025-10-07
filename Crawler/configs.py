@@ -12,16 +12,8 @@ TEST_MODE = False
 CRAWL_NUMBER = 16
 PAGE_NUMBER = 1
 DELAY_TIME = 5
-
-
 MAIN_FILE= "D:/My Codes/Projects/Project-001/Database/gsmarena_products.csv"
 TEST_FILE= "D:/My Codes/Projects/Project-001/Crawler/trials/test_csv.csv"
-SESSION_ID = "project-002"
-
-
-
-## STRATEGY
-CSS_SELECTOR = ".makers"
 URLS_TO_CRAWL = [
     {"brand": "Samsung", "url": "https://www.gsmarena.com/samsung-phones-f-9-0-p.php"},
     {"brand": "Apple", "url": "https://www.gsmarena.com/apple-phones-f-48-0-p.php"},
@@ -60,7 +52,11 @@ URLS_TO_CRAWL = [
     {"brand": "Itel", "url": "https://www.gsmarena.com/itel-phones-f-131-0-p.php"},
     {"brand": "TCL", "url": "https://www.gsmarena.com/tcl-phones-f-123-0-p.php"}
 ]
+BASE_URL = f"{URLS_TO_CRAWL[CRAWL_NUMBER]['url']}"[:-4]
 
+
+
+## STRATEGY & CONFIGURATION
 # Handcrafted schema for JsonCssExtractionStrategy by inspecting the webpage
 SCHEMA_FOR_EXTRACTION = {
         "name": "Product",
@@ -71,8 +67,6 @@ SCHEMA_FOR_EXTRACTION = {
             ]    
         }
 
-BASE_URL = f"{URLS_TO_CRAWL[CRAWL_NUMBER]['url']}"[:-4]
-
 # PYDANTIC SCHEMA FOR LLM-BASED EXTRACTION STRATEGY
 class Products(BaseModel):
     category : str
@@ -82,25 +76,23 @@ class Products(BaseModel):
     price : int
     url : str
 
-
-## CONFIGURATION SETTINGS
 def get_browser_config():
     return BrowserConfig(
-        browser_type='chromium', # Chrome Browser
-        headless=False, # Headless == No GUI
-        verbose=True # Verbose logging
+        browser_type='chromium',
+        headless=False,
+        verbose=True
     ) 
 
 def get_crawler_config():
     return CrawlerRunConfig(
-            css_selector=CSS_SELECTOR,
+            css_selector=".makers",
             extraction_strategy=JsonCssExtractionStrategy(SCHEMA_FOR_EXTRACTION),
-            session_id=SESSION_ID,
+            session_id="project-002",
             cache_mode=CacheMode.BYPASS
         )
 
 
-# OUTPUT
+## OUTPUT
 class Output_Pipeline:
     def __init__(self):
         self.page_number = PAGE_NUMBER
