@@ -41,9 +41,7 @@ async def crawl_products(test_mode):
                     break
     # FINAL LOG               
     finally:
-        print("CRAWLING COMPLETE.")
-        print(f"Crawled {output_pipeline.crawled_page_count} Pages.")
-        print(f"Total {output_pipeline.product_count} information added to Database.")
+        output_pipeline.final_log()
         
 
 async def main():

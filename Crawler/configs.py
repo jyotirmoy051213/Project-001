@@ -6,53 +6,18 @@ Change configuration based on website & crawling strategy
 import os, csv, json, asyncio
 from pydantic import BaseModel
 from crawl4ai import BrowserConfig, CrawlerRunConfig, LLMConfig, LLMExtractionStrategy, JsonCssExtractionStrategy, CacheMode
+import pandas as pd
 
 ## CONTROL VARIABLES
 TEST_MODE = False
-CRAWL_NUMBER = 16
-PAGE_NUMBER = 1
-DELAY_TIME = 5
-MAIN_FILE= "D:/My Codes/Projects/Project-001/Database/gsmarena_products.csv"
+RETRY_ATTEMPTS = 5
+RETRY_DELAY = 7
+BATCH_SIZE = 100
+DELAY_TIME = 18
+START_FROM_PHONE = 6785
+MAIN_FILE= "D:/My Codes/Projects/Project-001/Database/gsmarena_phonespecs.csv"
 TEST_FILE= "D:/My Codes/Projects/Project-001/Crawler/trials/test_csv.csv"
-URLS_TO_CRAWL = [
-    {"brand": "Samsung", "url": "https://www.gsmarena.com/samsung-phones-f-9-0-p.php"},
-    {"brand": "Apple", "url": "https://www.gsmarena.com/apple-phones-f-48-0-p.php"},
-    {"brand": "Huawei", "url": "https://www.gsmarena.com/huawei-phones-f-58-0-p.php"},
-    {"brand": "Nokia", "url": "https://www.gsmarena.com/nokia-phones-f-1-0-p.php"},
-    {"brand": "Sony", "url": "https://www.gsmarena.com/sony-phones-f-7-0-p.php"},
-    {"brand": "LG", "url": "https://www.gsmarena.com/lg-phones-f-20-0-p.php"},
-    {"brand": "HTC", "url": "https://www.gsmarena.com/htc-phones-f-45-0-p.php"},
-    {"brand": "Motorola", "url": "https://www.gsmarena.com/motorola-phones-f-4-0-p.php"},
-    {"brand": "Lenovo", "url": "https://www.gsmarena.com/lenovo-phones-f-73-0-p.php"},
-    {"brand": "Xiaomi", "url": "https://www.gsmarena.com/xiaomi-phones-f-80-0-p.php"},
-    {"brand": "Google", "url": "https://www.gsmarena.com/google-phones-f-107-0-p.php"},
-    {"brand": "Honor", "url": "https://www.gsmarena.com/honor-phones-f-121-0-p.php"},
-    {"brand": "Oppo", "url": "https://www.gsmarena.com/oppo-phones-f-82-0-p.php"},
-    {"brand": "Realme", "url": "https://www.gsmarena.com/realme-phones-f-118-0-p.php"},
-    {"brand": "OnePlus", "url": "https://www.gsmarena.com/oneplus-phones-f-95-0-p.php"},
-    {"brand": "Nothing", "url": "https://www.gsmarena.com/nothing-phones-f-128-0-p.php"},
-    {"brand": "vivo", "url": "https://www.gsmarena.com/vivo-phones-f-98-0-p.php"},
-    {"brand": "Meizu", "url": "https://www.gsmarena.com/meizu-phones-f-74-0-p.php"},
-    {"brand": "Asus", "url": "https://www.gsmarena.com/asus-phones-f-46-0-p.php"},
-    {"brand": "Alcatel", "url": "https://www.gsmarena.com/alcatel-phones-f-5-0-p.php"},
-    {"brand": "ZTE", "url": "https://www.gsmarena.com/zte-phones-f-62-0-p.php"},
-    {"brand": "Microsoft", "url": "https://www.gsmarena.com/microsoft-phones-f-64-0-p.php"},
-    {"brand": "Umidigi", "url": "https://www.gsmarena.com/umidigi-phones-f-135-0-p.php"},
-    {"brand": "Coolpad", "url": "https://www.gsmarena.com/coolpad-phones-f-105-0-p.php"},
-    {"brand": "Oscal", "url": "https://www.gsmarena.com/oscal-phones-f-134-0-p.php"},
-    {"brand": "Sharp", "url": "https://www.gsmarena.com/sharp-phones-f-23-0-p.php"},
-    {"brand": "Micromax", "url": "https://www.gsmarena.com/micromax-phones-f-66-0-p.php"},
-    {"brand": "Infinix", "url": "https://www.gsmarena.com/infinix-phones-f-119-0-p.php"},
-    {"brand": "Ulefone", "url": "https://www.gsmarena.com/ulefone-phones-f-124-0-p.php"},
-    {"brand": "Tecno", "url": "https://www.gsmarena.com/tecno-phones-f-120-0-p.php"},
-    {"brand": "Doogee", "url": "https://www.gsmarena.com/doogee-phones-f-129-0-p.php"},
-    {"brand": "Blackview", "url": "https://www.gsmarena.com/blackview-phones-f-116-0-p.php"},
-    {"brand": "Cubot", "url": "https://www.gsmarena.com/cubot-phones-f-130-0-p.php"},
-    {"brand": "Oukitel", "url": "https://www.gsmarena.com/oukitel-phones-f-132-0-p.php"},
-    {"brand": "Itel", "url": "https://www.gsmarena.com/itel-phones-f-131-0-p.php"},
-    {"brand": "TCL", "url": "https://www.gsmarena.com/tcl-phones-f-123-0-p.php"}
-]
-BASE_URL = f"{URLS_TO_CRAWL[CRAWL_NUMBER]['url']}"[:-4]
+PHONE_LIST_FILE = "D:/My Codes/Projects/Project-001/Database/gsmarena_products.csv"
 
 
 
@@ -80,113 +45,174 @@ def get_browser_config():
     return BrowserConfig(
         browser_type='chromium',
         headless=False,
-        verbose=True
+        verbose=True,
+        proxy_config={"server": "socks5://104.248.197.67:1080"}
     ) 
 
 def get_crawler_config():
     return CrawlerRunConfig(
-            css_selector=".makers",
-            extraction_strategy=JsonCssExtractionStrategy(SCHEMA_FOR_EXTRACTION),
             session_id="project-002",
-            cache_mode=CacheMode.BYPASS
+            cache_mode=CacheMode.BYPASS,
+            table_score_threshold=5
         )
 
 
 ## OUTPUT
 class Output_Pipeline:
     def __init__(self):
-        self.page_number = PAGE_NUMBER
-        self.product_count = 0
-        self.crawled_page_count = 0
-        self.seen_product = set()
+        self.test_mode : bool = TEST_MODE
+        self.retry_attempts : int = RETRY_ATTEMPTS
+        self.retry_delay : int = RETRY_DELAY
+        self.current_counter : int = 0
+        self.total_counter : int = 0
+        self.batch_size : int = BATCH_SIZE
+        self.filename  = TEST_FILE if TEST_MODE else MAIN_FILE
+        self.phone_list_file = PHONE_LIST_FILE
+        self.phone_list : list[dict] = []
+        self.start_from_phone : int = START_FROM_PHONE
+        self.buffer : list[dict] = []
+        self.master_columns : list[str] = []
         self.delay_time = DELAY_TIME
-        self.test_mode = TEST_MODE
-        self.main_file = MAIN_FILE
-        self.test_file = TEST_FILE
-    
-    # DYNAMICALLY UPDATE URL
+
     @property
     def url(self):
-        return BASE_URL + f"{self.page_number}.php"
+        return self.phone_list[self.current_counter]['URL']
+
     
-    # WRITER METHOD
-    def csv_writer(self, file_to_be_written, product_info):
-        headers = ["Brand", "Model", "URL"]
-        file_exists = os.path.isfile(file_to_be_written)
-        with open(file_to_be_written, mode='a', newline='', encoding='utf-8') as file:
-            writer = csv.writer(file)
-
-        # Write header only if file is new, otherwise assume, there is already a header
-        if not file_exists:
-            writer.writerow(headers)
-        
-        for product in product_info:
-            row = [product.get(field, '') for field in headers]
-            writer.writerow(row)
-
-
     async def __call__(self, crawler):
-        ## MODULE 1:: CRAWLING & EXTRACTION
-        # RUN THE CRAWLER
-        result = await crawler.arun(
-            url = self.url,
-            config=get_crawler_config()
-            )
-        # SEE IF THE CRAWLING WAS SUCCESSFUL
+        """Construct list of phones from file"""
+        if not self.phone_list or self.current_counter >= len(self.phone_list):
+            print("FETCHING NEW BATCH.") 
+            self.phone_list_reader(self.batch_size)
+            self.current_counter = 0
+            
+            if not self.phone_list:
+                print("NO MORE PHONES TO SCRAPE.")
+                self.flush()
+                return False
+ 
+        for attempt in range(self.retry_attempts):
+            print(f"Accessing URL. Attempt: {attempt + 1}")
+            result = await crawler.arun(
+                url = self.url,
+                config=get_crawler_config()
+                )
+            if result.success:
+                print("URL Accessed.")
+                break
+            print(f"Can't Access URL. Waiting {self.retry_delay} seconds for next attempt.")
+            await asyncio.sleep(self.retry_delay)
+
         if not result.success:
             print("STATUS: CRAWLING ERROR!!")
+            self.flush()
             return False
-        print("STATUS: CRAWLING SUCCESSFUL. PROCESSING OUTPUT.")
-        # SEE IF EXTRACTION WAS SUCCESSFUL
-        extracted_data = json.loads(result.extracted_content)
-        if not extracted_data:
-            print(f"No products found in Page {self.page_number}.")
+        print("STATUS: CRAWLING SUCCESSFUL.")
+        if not result.tables:
+            print(f"No Data Found.")
+            self.flush()
             return False
-        print(f"PAGE NO: {self.page_number}, DATA EXTRACTION COMPLETED.")        
-        
-        
-        
-        # MODULE 2 :: ORGANIZE EXTRACTED DATA FOR WRITING (APPEND NEW DATA, CHECK FOR DUPLICATES)
-        new_products = []
-        model_entries = extracted_data[0].get("model", [])
-        for entry in model_entries:
-                relative_url = entry.get("model", "")
-                if relative_url:
-                    model_name = relative_url.split("-")[0].replace("_", " ").title()
-                    full_url = f"https://www.gsmarena.com/{relative_url}"
-                    new_products.append({"Brand": URLS_TO_CRAWL[CRAWL_NUMBER]['brand'], "Model": model_name, "URL": full_url})
-        print(f"Update: Page {self.page_number}: Extracted {len(new_products)} URLs.")
-
-
-        ## MODULE 3 :: WRITING
-        if self.test_mode:
-            print("RUNNING ON TEST MODE")
-            self.csv_writer(
-                file_to_be_written=self.test_file,
-                products=new_products
-                )
-        else:
-            self.csv_writer(
-                file_to_be_written=self.main_file,
-                products=new_products
-                )
-        
-        
-        ## MODUEL 4 :: COUNTERS
-        self.product_count = self.product_count + len(new_products)
-        self.crawled_page_count += 1
-        print(f"Update: Page {self.page_number}: Written {len(new_products)} new URLs to database. Total written: {self.product_count}")
-        if self.test_mode:
-            print(f"TEST MODE SUCCESSFUL. WAIT FOR FINAL LOG")
-            return False
-        self.page_number += 1
-        self.crawled_page_count += 1
-        # STOP IF NOTHING FOUND
-        if len(new_products) == 0:
-            print(f"No Products found in Page{self.page_number}")
-            return False            
-        # DELAY LOG
-        print(f"Proceeding to next page after {self.delay_time} seconds...")
-        await asyncio.sleep(self.delay_time) # Be polite and avoid overwhelming the server
-
+        print(f"DATA EXTRACTION COMPLETED.")
+        self.organize_result(result.tables)
+        await asyncio.sleep(self.delay_time)
         return True
+    
+    def phone_list_reader(self, batch_size):
+        self.phone_list.clear()
+        self.current_counter = 0
+        
+        with open(self.phone_list_file, 'r', encoding='utf-8') as file:
+            reader = csv.DictReader(file)
+            for _ in range(self.start_from_phone - 1): ## AS DICTREADER BY DEFAULT SKIPS A ROW IF NO FIELDNAME IS GIVEN
+                next(reader, None) # SKIPPING
+
+            for _ in range(batch_size):
+                try:
+                    phone_data = next(reader)
+                    if not phone_data.get('URL'):
+                        break
+                    self.phone_list.append(phone_data)
+                    self.start_from_phone += 1
+                except StopIteration:
+                    break
+            if self.phone_list:
+                print(f"{len(self.phone_list)} PHONE LINKS LOADED IN MEMORY FOR CRAWLING.")
+    
+    def organize_result(self, tables):
+        brand = self.phone_list[self.current_counter]['Brand']
+        model = self.phone_list[self.current_counter]['Model']
+        flat_dict = {"Brand": brand, "Model": model}
+        for table in tables:
+            section = table['headers'][0]
+            for row in table['rows']:
+                if not row[0]:  # skip empty keys
+                    continue
+                key = f"{section}_{row[0]}".strip()
+                value = row[1].strip()
+                flat_dict[key] = value
+        print(f"STORING IN MEMORY: Brand-{brand}, Model-{model}")
+        return self.store_in_memory(flat_dict)
+        
+    def store_in_memory(self, flat_dict : dict):
+        """Add a scraped record"""
+        self.buffer.append(flat_dict)
+
+        """Add new keys in the master column"""
+        for key in flat_dict.keys():
+            if key not in self.master_columns:
+                """key alone is just a 'string',
+                {key} is a set containing that string: {'string'}"""
+                self.master_columns = sorted(
+                    set(self.master_columns) | {key}
+                    )
+        self.current_counter += 1
+        self.total_counter += 1
+        print(f"CURRENT BUFFER: {self.current_counter} PHONE SPECS STORED IN MEMORY.")
+        print(f"TOTAL {self.total_counter} PHONE SPECS WRITTEN SO FAR.")
+        if len(self.buffer) == self.batch_size or self.test_mode:
+            self.flush()
+    
+    def flush(self):
+        self.phone_list.clear()
+        self.current_counter = 0
+        """write buffers to csv"""
+        if not self.buffer:
+            print("NO PHONE SPECS IN MEMORY TO WRITE.")
+            return
+        print(f"WRITING {len(self.buffer)} PHONE SPECS FROM MEMORY.")
+        """Create a new dataframe first with buffered data"""
+        df_new = pd.DataFrame(self.buffer)
+
+        try:
+            """check for existing file to resume writing"""
+            df_existing = pd.read_csv(self.filename)
+            all_columns = list(
+                set(df_existing.columns) | set(df_new.columns)
+            )
+            
+            """Putting Brand and Model as Column No 1 & 2"""
+            PRIORITY = ['Brand', 'Model']
+            priority_columns = [col for col in PRIORITY]
+            remaining_columns = sorted([col for col in all_columns if col not in priority_columns])
+            reordered_columns = (priority_columns + remaining_columns)
+            
+            """Reindex both dataframes to ensure same columns"""
+            df_existing = df_existing.reindex(columns=reordered_columns)
+            df_new = df_new.reindex(columns=reordered_columns)
+
+            """Concatenate and save"""
+            df_combined = pd.concat([df_existing, df_new], ignore_index=True)
+            df_combined.to_csv(self.filename, index=False)
+
+        except FileNotFoundError:
+            """First time writing: Save new data"""
+            df_new = df_new.reindex(columns=self.master_columns)
+            df_new.to_csv(self.filename, index=False)
+        print(f"{len(self.buffer)} PHONE SPECS WRITTEN IN DATABASE.")
+        self.buffer.clear()
+
+        
+    """Final Log"""
+    def final_log(self):
+        print("CRAWLING COMPLETE.")
+        print(f"Total {self.total_counter} information added to Database.")
