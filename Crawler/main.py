@@ -29,9 +29,9 @@ async def crawl_products(test_mode):
     browser_config = configs.get_browser_config()   
     try:
         async with AsyncWebCrawler(config=browser_config) as crawler:
-            output_pipeline = configs.Output_Pipeline()
             if test_mode:
                 print("RUNNING ON TEST MODE.")
+            output_pipeline = configs.Output_Pipeline()
             while True:
                 print("STATUS: INITIATING CRAWLING.")
                 should_continue = await output_pipeline(crawler=crawler)
