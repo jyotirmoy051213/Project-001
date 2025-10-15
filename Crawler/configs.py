@@ -9,11 +9,11 @@ from crawl4ai import BrowserConfig, CrawlerRunConfig, LLMConfig, LLMExtractionSt
 import pandas as pd
 
 ## CONTROL VARIABLES
-TEST_MODE = True
+TEST_MODE = False
 MAX_TEST_RUN_COUNT = 3
 RETRY_ATTEMPTS = 5
 RETRY_DELAY = 7
-DELAY_TIME = 18
+DELAY_TIME = 30
 MAIN_FILE= "D:/My Codes/Projects/Project-001/Database/gsmarena_phones.db"
 TEST_FILE= "D:/My Codes/Projects/Project-001/Crawler/trials/test.db"
 URLS_TO_CRAWL = [
@@ -56,8 +56,6 @@ URLS_TO_CRAWL = [
 ]
 
 
-
-
 ## STRATEGY & CONFIGURATION
 # Handcrafted schema for JsonCssExtractionStrategy by inspecting the webpage
 SCHEMA_FOR_EXTRACTION = {
@@ -84,7 +82,6 @@ def get_browser_config():
         browser_type='chromium',
         headless=False,
         verbose=True,
-        proxy_config={"server": "https://152.42.170.187:9090"}
     ) 
 
 def get_crawler_config():
@@ -110,7 +107,7 @@ class Output_Pipeline:
         self.table_name = "GSMarena Products"
         self.url_list = URLS_TO_CRAWL
         self.current_crawl : int = 0
-        self.base_url : str = f"{self.url_list[self.current_crawl]['url']}"[:-4] if self.url_list else ""
+        self.base_url : str
         self.page_number : int = 1
         self.write_counter : int = 0
         self.total_counter : int = 0
@@ -118,6 +115,7 @@ class Output_Pipeline:
 
     @property
     def url(self) -> str:
+        self.base_url = f"{self.url_list[self.current_crawl]['url']}"[:-4]
         return self.base_url + f"{self.page_number}.php"
 
  
@@ -146,14 +144,17 @@ class Output_Pipeline:
                 return False
             print("STATUS: CRAWLING SUCCESSFUL.")
             extracted_data = json.loads(result.extracted_content)
-            
-            if not extracted_data:
+            """
+            FORMAT OF EXTRACTED_DATA
+              [{'old_name': [], 'new_name': [], 'image': []}]
+            """
+            if extracted_data and all(not value for value in extracted_data[0].values()):
                 print(f"No products found in Page {self.page_number}.")
                 self.current_crawl += 1
                 self.page_number = 1
-                return False
-        
-            self.organize_result(extracted_data)
+            else:
+                self.organize_result(extracted_data)
+                self.page_number +=1
 
             # CONTROL FOR TEST MODE
             if self.test_mode:
@@ -309,7 +310,6 @@ class Output_Pipeline:
         self.total_counter = self.total_counter + len(records)
         print(f"{len(records)} Phone Information Written in Database.")
         print(f"Total Written: {self.write_counter} in Current Run, {self.total_counter} Overall.")
-        self.page_number += 1
         
     """Final Log"""
     def final_log(self):
